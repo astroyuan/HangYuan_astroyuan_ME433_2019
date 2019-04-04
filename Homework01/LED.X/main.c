@@ -23,7 +23,7 @@
 #pragma config FWDTWINSZ = WINSZ_25 // wdt window at 25%
 
 // DEVCFG2 - get the sysclk clock to 48MHz from the 8MHz crystal
-#pragma config FPLLIDIV = DIV_1 // divide input clock to be in range 4-5MHz
+#pragma config FPLLIDIV = DIV_2 // divide input clock to be in range 4-5MHz
 #pragma config FPLLMUL = MUL_24 // multiply clock after FPLLIDIV
 #pragma config FPLLODIV = DIV_2 // divide clock after FPLLMUL to get 48MHz
 #pragma config UPLLIDIV = DIV_2 // divider for the 8MHz input clock, then multiplied by 12 to get 48MHz for USB
@@ -59,13 +59,17 @@ int main() {
     LATAbits.LATA4 = 1; //A4
 
     __builtin_enable_interrupts();
+    
+    _CP0_SET_COUNT(0);
 
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
 	// remember the core timer runs at half the sysclk
-        _CP0_SET_COUNT(0);
-        while(_CP0_GET_COUNT() < 12000){}
-        LATAbits.LATA4 = !LATAbits.LATA4;
+        if(_CP0_GET_COUNT() > 12000)
+        {
+            LATAbits.LATA4 = !LATAbits.LATA4;
+            _CP0_SET_COUNT(0);
+        }
         while (!PORTBbits.RB4){LATAbits.LATA4 = 0;}
     }
 }
