@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="yes" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="yes" active="yes"/>
 <layer number="2" name="Route2" color="16" fill="1" visible="no" active="yes"/>
@@ -14210,6 +14210,8 @@ Source: http://www.ledtronics.com/ds/smd-0603/Dstr0092.pdf</description>
 <wire x1="-25.4" y1="-25.4" x2="25.4" y2="-25.4" width="0.254" layer="94"/>
 <wire x1="25.4" y1="-25.4" x2="25.4" y2="25.4" width="0.254" layer="94"/>
 <wire x1="25.4" y1="25.4" x2="-25.4" y2="25.4" width="0.254" layer="94"/>
+<text x="-10.16" y="2.54" size="1.778" layer="94">&gt;NAME</text>
+<text x="-10.16" y="-2.54" size="1.778" layer="94">&gt;VALUE</text>
 </symbol>
 <symbol name="L4931">
 <wire x1="-12.7" y1="0" x2="12.7" y2="0" width="0.254" layer="94" curve="-157.380135"/>
@@ -14242,12 +14244,12 @@ Source: http://www.ledtronics.com/ds/smd-0603/Dstr0092.pdf</description>
 <wire x1="3.81" y1="6.35" x2="1.27" y2="6.35" width="0.254" layer="94"/>
 <wire x1="1.27" y1="6.35" x2="0" y2="5.08" width="0.254" layer="94"/>
 <text x="-2.54" y="11.43" size="1.778" layer="95">&gt;NAME</text>
-<text x="10.16" y="-7.62" size="1.778" layer="96" rot="R90">&gt;VALUE</text>
-<pin name="1" x="-5.08" y="5.08" visible="pin" direction="in"/>
-<pin name="2" x="-5.08" y="2.54" visible="pin" direction="in"/>
-<pin name="3" x="-5.08" y="0" visible="pin" direction="in"/>
-<pin name="4" x="-5.08" y="-2.54" visible="pin" direction="in"/>
-<pin name="5" x="-5.08" y="-5.08" visible="pin" direction="in"/>
+<text x="7.62" y="-10.16" size="1.778" layer="96" rot="R180">&gt;VALUE</text>
+<pin name="1-ID" x="-5.08" y="5.08" visible="pin" direction="in"/>
+<pin name="2-D+" x="-5.08" y="2.54" visible="pin" direction="in"/>
+<pin name="3-D-" x="-5.08" y="0" visible="pin" direction="in"/>
+<pin name="4-VBUS" x="-5.08" y="-2.54" visible="pin" direction="in"/>
+<pin name="5-GND" x="-5.08" y="-5.08" visible="pin" direction="in"/>
 </symbol>
 <symbol name="CONN_05">
 <description>&lt;h3&gt;5 Pin Connection&lt;/h3&gt;</description>
@@ -14346,6 +14348,19 @@ Source: http://www.ledtronics.com/ds/smd-0603/Dstr0092.pdf</description>
 <wire x1="-5.08" y1="-7.62" x2="10.16" y2="-7.62" width="0.254" layer="94"/>
 <wire x1="10.16" y1="-7.62" x2="10.16" y2="12.7" width="0.254" layer="94"/>
 <wire x1="10.16" y1="12.7" x2="-5.08" y2="12.7" width="0.254" layer="94"/>
+</symbol>
+<symbol name="SNAP">
+<pin name="1-MCLR" x="-10.16" y="-5.08" length="middle" rot="R90"/>
+<pin name="2-VDD" x="-5.08" y="-5.08" length="middle" rot="R90"/>
+<pin name="3-GND" x="0" y="-5.08" length="middle" rot="R90"/>
+<pin name="4-PGD" x="5.08" y="-5.08" length="middle" rot="R90"/>
+<pin name="5-PGC" x="10.16" y="-5.08" length="middle" rot="R90"/>
+<text x="-10.16" y="12.7" size="1.778" layer="94">&gt;NAME</text>
+<text x="2.54" y="12.7" size="1.778" layer="94">&gt;VALUE</text>
+<wire x1="-15.24" y1="17.78" x2="-15.24" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="-15.24" y1="-2.54" x2="15.24" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="15.24" y1="-2.54" x2="15.24" y2="17.78" width="0.254" layer="94"/>
+<wire x1="15.24" y1="17.78" x2="-15.24" y2="17.78" width="0.254" layer="94"/>
 </symbol>
 </symbols>
 <devicesets>
@@ -20541,6 +20556,44 @@ This footprint was designed to help hold the alignment of a through-hole compone
 <connect gate="G$1" pin="1-OSC1" pad="1"/>
 <connect gate="G$1" pin="2-GND" pad="2"/>
 <connect gate="G$1" pin="3-OSC2" pad="3"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="USB-PLACEHOLDER">
+<gates>
+<gate name="G$1" symbol="MINI-USB" x="-2.54" y="0"/>
+</gates>
+<devices>
+<device name="" package="USB-B-MICRO-SMD_V04">
+<connects>
+<connect gate="G$1" pin="1-ID" pad="D+1"/>
+<connect gate="G$1" pin="2-D+" pad="D-1"/>
+<connect gate="G$1" pin="3-D-" pad="GND1"/>
+<connect gate="G$1" pin="4-VBUS" pad="ID1"/>
+<connect gate="G$1" pin="5-GND" pad="VBUS1"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="SNAP">
+<gates>
+<gate name="G$1" symbol="SNAP" x="0" y="-2.54"/>
+</gates>
+<devices>
+<device name="" package="1X05">
+<connects>
+<connect gate="G$1" pin="1-MCLR" pad="1"/>
+<connect gate="G$1" pin="2-VDD" pad="2"/>
+<connect gate="G$1" pin="3-GND" pad="3"/>
+<connect gate="G$1" pin="4-PGD" pad="4"/>
+<connect gate="G$1" pin="5-PGC" pad="5"/>
 </connects>
 <technologies>
 <technology name=""/>

@@ -276,7 +276,6 @@ UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Lib
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-Electromechanical.lbr"
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-Fuses.lbr"
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-GPS.lbr"
-UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-Hardware.lbr"
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-IC-Amplifiers.lbr"
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-IC-Comms.lbr"
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-IC-Conversion.lbr"
@@ -294,6 +293,7 @@ UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Lib
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-Sensors.lbr"
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/SparkFun-Switches.lbr"
 UsedLibrary="C:/Users/Hang Yuan/Documents/EAGLE/libraries_ext/SparkFun-Eagle-Libraries/User-Submitted.lbr"
+UsedLibrary="Parts.lbr"
 
 [Win_1]
 Type="Control Panel"
