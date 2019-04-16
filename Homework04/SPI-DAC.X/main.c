@@ -1,5 +1,6 @@
 #include<xc.h>           // processor SFR definitions
 #include<sys/attribs.h>  // __ISR macro
+#include<math.h>
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -36,7 +37,7 @@
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
-#define CS LATAbits.LATB15
+#define CS LATBbits.LATB15
 
 void LED_blink_init()
 {
@@ -113,6 +114,30 @@ void setVoltage(char channel, int voltage)
     CS = 1; // end communication
 }
 
+int rescale2bits(double val, double valmin, double valmax, int tarmin, int tarmax)
+{
+    // rescale double value to targeted bit ranges
+    return (int) ((val/(valmax-valmin)) * (tarmax-tarmin));
+}
+
+double signal_channel_A(double t, double amp)
+{
+    // voltage signal of channel A
+    // t is rescaled by period which is between 0 and 1
+    
+    // sine wave
+    return amp*sin(2*M_PI*t);
+}
+
+double signal_channel_B(double t, double amp)
+{
+    // voltage signal of channel B
+    // t is rescaled by period which is between 0 and 1
+    
+    // triangular wave    
+    return amp*(1-2*abs(t-0.5));
+}
+
 int main() {
 
     __builtin_disable_interrupts();
@@ -137,27 +162,72 @@ int main() {
     
     // init counter
     _CP0_SET_COUNT(0);
+    int cnt = 0;
     
     // frequency config
     int SysCLK_freq = 48e6; // system clock frequency
     int LoopCLK_freq = SysCLK_freq/2; // main loop frequency
+    int DAC_COM_freq = 1e3; // 1KHz DAC communication frequency
     // LED
     int LED_blink_freq = 1e3; // LED blink frequency
     // DAC
     int DAC_A_freq = 10; // channel A frequency
     int DAC_B_freq = 5; // channel B frequency
     
+    // scaled time variables
+    double t_A=0.0;
+    double t_B=0.0;
+    
+    // voltages
+    int voltage_res = 0xfff; // 12 bits voltage resolution
+    double vol_A_amp=1;  // volt
+    double vol_B_amp=1;  // volt
+    double vol_A_val=0.0;
+    double vol_B_val=0.0;
+    int vol_A_bits = 0x0;
+    int vol_B_bits = 0x0;
+    
+    // periods
+    int T_DAC_COM = LoopCLK_freq/DAC_COM_freq;
+    int T_LED_BLINK = LoopCLK_freq/LED_blink_freq/2;
+    int T_DAC_A = LoopCLK_freq/DAC_A_freq;
+    int T_DAC_B = LoopCLK_freq/DAC_B_freq;
+    
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
 	// remember the core timer runs at half the sysclk
-        
+        cnt = _CP0_GET_COUNT();
+         /*-------------------------------------
+         -------- DAC Functionalities ----------
+         --------------------------------------*/
+        // talk to DAC every 1ms
+        if(cnt % T_DAC_COM)
+        {
+            // rescale time in reduced units
+            t_A = (cnt % T_DAC_A) / T_DAC_A;
+            t_B = (cnt % T_DAC_B) / T_DAC_B;
+            
+            // get voltage values
+            vol_A_val = signal_channel_A(t_A, vol_A_amp);
+            vol_B_val = signal_channel_B(t_B, vol_B_amp);
+            
+            // convert into 12 bits resolution
+            vol_A_bits = rescale2bits(vol_A_val, -vol_A_amp, vol_A_amp, 0, voltage_res);
+            vol_A_bits &= voltage_res; // double check to truncate as 12 bits
+            vol_B_bits = rescale2bits(vol_B_val, -vol_B_amp, vol_B_amp, 0, voltage_res);
+            vol_B_bits &= voltage_res; // double check to truncate as 12 bits
+            
+            // send to DAC
+            setVoltage('A', vol_A_bits);
+            setVoltage('B', vol_B_bits);
+        }
         /*-------------------------------------
          ------- LED Functionalities ----------
          --------------------------------------*/
-        if(_CP0_GET_COUNT() % (LoopCLK_freq/LED_blink_freq/2) )
+        if(cnt % T_LED_BLINK )
         {
             LATAbits.LATA4 = !LATAbits.LATA4;
-            _CP0_SET_COUNT(0);
+            //_CP0_SET_COUNT(0);
         }
         while (!PORTBbits.RB4){LATAbits.LATA4 = 0;}
     }
