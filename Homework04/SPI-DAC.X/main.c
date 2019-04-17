@@ -153,10 +153,14 @@ int main() {
 
     // disable JTAG to get pins back
     DDPCONbits.JTAGEN = 0;
+    
+    // functionality control
+    int LED_blink_flag = 1;
+    int SPI_flag = 1;
 
     // do your TRIS and LAT commands here
-    LED_blink_init();
-    SPI1_init();
+    if(LED_blink_flag == 1) LED_blink_init();
+    if(SPI_flag == 1) SPI1_init();
 
     __builtin_enable_interrupts();
     
@@ -201,7 +205,7 @@ int main() {
          -------- DAC Functionalities ----------
          --------------------------------------*/
         // talk to DAC every 1ms
-        if(cnt % T_DAC_COM)
+        if ((SPI_flag == 1) && (cnt % T_DAC_COM == 0))
         {
             // rescale time in reduced units
             t_A = (cnt % T_DAC_A) / T_DAC_A;
@@ -224,11 +228,14 @@ int main() {
         /*-------------------------------------
          ------- LED Functionalities ----------
          --------------------------------------*/
-        if(cnt % T_LED_BLINK )
+        if (LED_blink_flag == 1)
         {
-            LATAbits.LATA4 = !LATAbits.LATA4;
-            //_CP0_SET_COUNT(0);
+            if(cnt % T_LED_BLINK == 0)
+            {
+                LATAbits.LATA4 = !LATAbits.LATA4;
+                //_CP0_SET_COUNT(0);
+            }
+            while (!PORTBbits.RB4){LATAbits.LATA4 = 0;}
         }
-        while (!PORTBbits.RB4){LATAbits.LATA4 = 0;}
     }
 }
