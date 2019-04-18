@@ -90,14 +90,8 @@ void setVoltage(char channel, int voltage)
     // set voltage for DAC of targeted channel
     unsigned short bitmask = 0x0; // initial mask
     // 15th bit for channel selection
-    if (channel == 'A')
-    {
-        bitmask |= 0x0 << 15;
-    }
-    else if (channel == 'B')
-    {
-        bitmask |= 0x1 << 15;
-    }
+    //if (channel == 'A') bitmask |= 0x0 << 15;
+    if (channel == 'B') bitmask |= 0x1 << 15;
     // 14th bit for buffer switch
     bitmask |= 0x1 << 14;
     // 13th bit for output gain selection
@@ -171,7 +165,7 @@ int main() {
     // frequency config
     int SysCLK_freq = 48e6; // system clock frequency
     int LoopCLK_freq = SysCLK_freq/2; // main loop frequency
-    int DAC_COM_freq = 1e3; // 1KHz DAC communication frequency
+    int DAC_COM_freq = 1e3; // DAC communication frequency
     // LED
     int LED_blink_freq = 1e3; // LED blink frequency
     // DAC
@@ -204,26 +198,29 @@ int main() {
          /*-------------------------------------
          -------- DAC Functionalities ----------
          --------------------------------------*/
-        // talk to DAC every 1ms
-        if ((SPI_flag == 1) && (cnt % T_DAC_COM == 0))
+        // talk to DAC every 1 ms
+        if (SPI_flag == 1)
         {
-            // rescale time in reduced units
-            t_A = (cnt % T_DAC_A) / T_DAC_A;
-            t_B = (cnt % T_DAC_B) / T_DAC_B;
-            
-            // get voltage values
-            vol_A_val = signal_channel_A(t_A, vol_A_amp);
-            vol_B_val = signal_channel_B(t_B, vol_B_amp);
-            
-            // convert into 12 bits resolution
-            vol_A_bits = rescale2bits(vol_A_val, -vol_A_amp, vol_A_amp, 0, voltage_res);
-            vol_A_bits &= voltage_res; // double check to truncate as 12 bits
-            vol_B_bits = rescale2bits(vol_B_val, -vol_B_amp, vol_B_amp, 0, voltage_res);
-            vol_B_bits &= voltage_res; // double check to truncate as 12 bits
-            
-            // send to DAC
-            setVoltage('A', vol_A_bits);
-            setVoltage('B', vol_B_bits);
+            if (cnt % T_DAC_COM == 0)
+            {
+                // rescale time in reduced units
+                t_A = (cnt % T_DAC_A) / T_DAC_A;
+                t_B = (cnt % T_DAC_B) / T_DAC_B;
+                
+                // get voltage values
+                vol_A_val = signal_channel_A(t_A, vol_A_amp);
+                vol_B_val = signal_channel_B(t_B, vol_B_amp);
+                
+                // linearly convert into 12 bits resolution
+                vol_A_bits = rescale2bits(vol_A_val, -vol_A_amp, vol_A_amp, 0, voltage_res);
+                vol_A_bits &= voltage_res; // double check to truncate as 12 bits
+                vol_B_bits = rescale2bits(vol_B_val, -vol_B_amp, vol_B_amp, 0, voltage_res);
+                vol_B_bits &= voltage_res; // double check to truncate as 12 bits
+                
+                // send to DAC
+                setVoltage('A', vol_A_bits);
+                setVoltage('B', vol_B_bits);
+            }
         }
         /*-------------------------------------
          ------- LED Functionalities ----------
