@@ -1,6 +1,7 @@
 #include<xc.h>           // processor SFR definitions
 #include<sys/attribs.h>  // __ISR macro
 #include<math.h>
+#include"i2c_master_utilities.h"
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -76,6 +77,21 @@ void SPI1_init()
     CS = 1; // finish initialization
 }
 
+void I2C2_initExpander()
+{
+    // initialize I2C2 slave device
+}
+
+void I2C2_setExpander()
+{
+    // set bits for expander
+}
+
+void I2C2_getExpander()
+{
+    // get bits of expander
+}
+
 // send a byte via spi and return the response
 unsigned char spi_io(unsigned char o) {
   SPI1BUF = o;
@@ -90,14 +106,8 @@ void setVoltage(char channel, int voltage)
     // set voltage for DAC of targeted channel
     unsigned short bitmask = 0x0; // initial mask
     // 15th bit for channel selection
-    if (channel == 'A')
-    {
-        bitmask |= 0x0 << 15;
-    }
-    else if (channel == 'B')
-    {
-        bitmask |= 0x1 << 15;
-    }
+    //if (channel == 'A') bitmask |= 0x0 << 15;
+    if (channel == 'B') bitmask |= 0x1 << 15;
     // 14th bit for buffer switch
     bitmask |= 0x1 << 14;
     // 13th bit for output gain selection
@@ -162,12 +172,9 @@ int main() {
     // do your TRIS and LAT commands here
     if(LED_blink_flag == 1) LED_blink_init();
     if(SPI_flag == 1) SPI1_init();
+    if(I2C_flag == 1) I2C_master_setup();
 
     __builtin_enable_interrupts();
-    
-    // init counter
-    _CP0_SET_COUNT(0);
-    int cnt = 0;
     
     // frequency config
     int SysCLK_freq = 48e6; // system clock frequency
@@ -198,33 +205,48 @@ int main() {
     int T_DAC_A = LoopCLK_freq/DAC_A_freq;
     int T_DAC_B = LoopCLK_freq/DAC_B_freq;
     
+    // init counter
+    _CP0_SET_COUNT(0);
+    int cnt = 0;
+
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
 	// remember the core timer runs at half the sysclk
         cnt = _CP0_GET_COUNT();
          /*-------------------------------------
+         -------- I2C Functionalities ----------
+         --------------------------------------*/
+        if (I2C_flag == 1)
+        {
+            // Talk to MCP23008
+            
+        }
+         /*-------------------------------------
          -------- DAC Functionalities ----------
          --------------------------------------*/
-        // talk to DAC every 1ms
-        if ((SPI_flag == 1) && (cnt % T_DAC_COM == 0))
+        if (SPI_flag == 1)
         {
-            // rescale time in reduced units
-            t_A = (cnt % T_DAC_A) / T_DAC_A;
-            t_B = (cnt % T_DAC_B) / T_DAC_B;
-            
-            // get voltage values
-            vol_A_val = signal_channel_A(t_A, vol_A_amp);
-            vol_B_val = signal_channel_B(t_B, vol_B_amp);
-            
-            // convert into 12 bits resolution
-            vol_A_bits = rescale2bits(vol_A_val, -vol_A_amp, vol_A_amp, 0, voltage_res);
-            vol_A_bits &= voltage_res; // double check to truncate as 12 bits
-            vol_B_bits = rescale2bits(vol_B_val, -vol_B_amp, vol_B_amp, 0, voltage_res);
-            vol_B_bits &= voltage_res; // double check to truncate as 12 bits
-            
-            // send to DAC
-            setVoltage('A', vol_A_bits);
-            setVoltage('B', vol_B_bits);
+            // Talk to DAC MCP4922
+            if (cnt % T_DAC_COM == 0)
+            {
+                // rescale time in reduced units
+                t_A = (cnt % T_DAC_A) / T_DAC_A;
+                t_B = (cnt % T_DAC_B) / T_DAC_B;
+                
+                // get voltage values
+                vol_A_val = signal_channel_A(t_A, vol_A_amp);
+                vol_B_val = signal_channel_B(t_B, vol_B_amp);
+                
+                // convert into 12 bits resolution
+                vol_A_bits = rescale2bits(vol_A_val, -vol_A_amp, vol_A_amp, 0, voltage_res);
+                vol_A_bits &= voltage_res; // double check to truncate as 12 bits
+                vol_B_bits = rescale2bits(vol_B_val, -vol_B_amp, vol_B_amp, 0, voltage_res);
+                vol_B_bits &= voltage_res; // double check to truncate as 12 bits
+                
+                // send to DAC
+                setVoltage('A', vol_A_bits);
+                setVoltage('B', vol_B_bits);
+            }
         }
         /*-------------------------------------
          ------- LED Functionalities ----------
