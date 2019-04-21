@@ -10,7 +10,7 @@ void I2C_master_setup(void) {
                                     // look up PGD for your PIC32
   I2C2CONbits.ON = 1;               // turn on the I2C2 module
   ANSELBbits.ANSB2 = 0;             // turn off default analog input
-  
+  ANSELBbits.ANSB3 = 0;
 }
 
 // Start a transmission on the I2C bus

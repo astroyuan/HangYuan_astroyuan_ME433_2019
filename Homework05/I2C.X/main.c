@@ -39,6 +39,7 @@
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
 #define CS LATBbits.LATB15
+#define SLAVE_ADDRESS 0b0100000 // 0100 + A2 A1 A0 + (W/R)
 
 void LED_blink_init()
 {
@@ -77,19 +78,40 @@ void SPI1_init()
     CS = 1; // finish initialization
 }
 
+void I2C2_setExpander(unsigned char reg_address, unsigned char config_byte)
+{
+    // set bits for expander
+    I2C_master_start();                       // start bit
+    I2C_master_send(SLAVE_ADDRESS << 1 | 0);  // send control byte 0 for writing
+    I2C_master_send(reg_address);             // send register address
+    I2C_master_send(config_byte);                  // send configuration bits
+    I2C_master_stop();                        // stop bit
+}
+
 void I2C2_initExpander()
 {
     // initialize I2C2 slave device
+    
+    // set up I/O ports IODIR 0x00
+    // GP7 - GP4 as input ports GP3 - GP0 as output ports
+    I2C2_setExpander(0x00, 0b11110000);
+    
+    // set up Output Latch OLAT 0x0A
+    I2C2_setExpander(0x0A, 0b00001111);
 }
 
-void I2C2_setExpander()
+unsigned char I2C2_getExpander()
 {
-    // set bits for expander
-}
-
-void I2C2_getExpander()
-{
-    // get bits of expander
+    // get GPIO bits of expander
+    I2C_master_start();                          // start bit
+    I2C_master_send(SLAVE_ADDRESS << 1 | 0);     // send control byte 0 for writing
+    I2C_master_send(0x09);                       // GPIO register 0x09
+    I2C_master_restart();
+    I2C_master_send(SLAVE_ADDRESS << 1 | 1);     // send control byte 1 for reading
+    unsigned char recv_byte = I2C_master_recv(); // get GPIO byte
+    I2C_master_ack(1);                           // ack done
+    I2C_master_stop();                           // stop bit
+    return recv_byte;
 }
 
 // send a byte via spi and return the response
@@ -173,6 +195,7 @@ int main() {
     if(LED_blink_flag == 1) LED_blink_init();
     if(SPI_flag == 1) SPI1_init();
     if(I2C_flag == 1) I2C_master_setup();
+    if(I2C_flag == 1) I2C2_initExpander();
 
     __builtin_enable_interrupts();
     
@@ -185,6 +208,8 @@ int main() {
     // DAC
     int DAC_A_freq = 10; // channel A frequency
     int DAC_B_freq = 5; // channel B frequency
+    // I/O Expander
+    int Expander_freq = 1e3; // I2C2 communication frequency
     
     // scaled time variables
     double t_A=0.0;
@@ -204,6 +229,7 @@ int main() {
     int T_LED_BLINK = LoopCLK_freq/LED_blink_freq/2;
     int T_DAC_A = LoopCLK_freq/DAC_A_freq;
     int T_DAC_B = LoopCLK_freq/DAC_B_freq;
+    int T_I2C2_COM = LoopCLK_freq/Expander_freq;
     int T_TIMER_RESET;
     
     // init counter
@@ -212,6 +238,7 @@ int main() {
     int TimerNow = _CP0_GET_COUNT();
     int Timer_LED = TimerStart;
     int Timer_DAC = TimerStart;
+    int Timer_I2C2 = TimerStart;
 
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
@@ -221,8 +248,26 @@ int main() {
          --------------------------------------*/
         if (I2C_flag == 1)
         {
+            unsigned char GPIO_byte = 0x00;
             // Talk to MCP23008
-            
+            if (_CP0_GET_COUNT() - Timer_I2C2 > T_I2C2_COM)
+            {
+                GPIO_byte = I2C2_getExpander();
+                if (GPIO_byte >> 7 == 1)
+                {
+                    // GP7 port is high, turn on LED
+                    // change OLAT-GP0 to high
+                    I2C2_setExpander(0x0A, 0b00000001);
+                }
+                else
+                {
+                    // GP7 port is low, turn off LED
+                    // change OLAT-GP0 to low
+                    I2C2_setExpander(0x0A, 0b00000000);
+                }
+                
+                Timer_I2C2 = _CP0_GET_COUNT();
+            }
         }
          /*-------------------------------------
          -------- DAC Functionalities ----------
