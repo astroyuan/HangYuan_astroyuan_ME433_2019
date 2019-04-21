@@ -158,16 +158,12 @@ int main() {
 
     __builtin_enable_interrupts();
     
-    // init counter
-    _CP0_SET_COUNT(0);
-    int cnt = 0;
-    
     // frequency config
     int SysCLK_freq = 48e6; // system clock frequency
     int LoopCLK_freq = SysCLK_freq/2; // main loop frequency
     int DAC_COM_freq = 1e3; // DAC communication frequency
     // LED
-    int LED_blink_freq = 1e3; // LED blink frequency
+    int LED_blink_freq = 2; // LED blink frequency
     // DAC
     int DAC_A_freq = 10; // channel A frequency
     int DAC_B_freq = 5; // channel B frequency
@@ -190,22 +186,30 @@ int main() {
     int T_LED_BLINK = LoopCLK_freq/LED_blink_freq/2;
     int T_DAC_A = LoopCLK_freq/DAC_A_freq;
     int T_DAC_B = LoopCLK_freq/DAC_B_freq;
+    int T_TIMER_RESET;
+    
+    // init counter
+    _CP0_SET_COUNT(0);
+    int TimerStart = _CP0_GET_COUNT();
+    int TimerNow = _CP0_GET_COUNT();
+    int Timer_LED = TimerStart;
+    int Timer_DAC = TimerStart;
     
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
 	// remember the core timer runs at half the sysclk
-        cnt = _CP0_GET_COUNT();
          /*-------------------------------------
          -------- DAC Functionalities ----------
          --------------------------------------*/
         // talk to DAC every 1 ms
         if (SPI_flag == 1)
         {
-            if (cnt % T_DAC_COM == 0)
+            if (_CP0_GET_COUNT() - Timer_DAC > T_DAC_COM)
             {
+                TimerNow = _CP0_GET_COUNT();
                 // rescale time in reduced units
-                t_A = (cnt % T_DAC_A) / T_DAC_A;
-                t_B = (cnt % T_DAC_B) / T_DAC_B;
+                t_A = (double)((TimerNow % T_DAC_A) / (double)T_DAC_A);
+                t_B = (double)((TimerNow % T_DAC_B) / (double)T_DAC_B);
                 
                 // get voltage values
                 vol_A_val = signal_channel_A(t_A, vol_A_amp);
@@ -220,6 +224,8 @@ int main() {
                 // send to DAC
                 setVoltage('A', vol_A_bits);
                 setVoltage('B', vol_B_bits);
+                
+                Timer_DAC = _CP0_GET_COUNT();
             }
         }
         /*-------------------------------------
@@ -227,12 +233,14 @@ int main() {
          --------------------------------------*/
         if (LED_blink_flag == 1)
         {
-            if(cnt % T_LED_BLINK == 0)
+            if(_CP0_GET_COUNT() - Timer_LED > T_LED_BLINK)
             {
                 LATAbits.LATA4 = !LATAbits.LATA4;
-                //_CP0_SET_COUNT(0);
+                Timer_LED = _CP0_GET_COUNT();
             }
             while (!PORTBbits.RB4){LATAbits.LATA4 = 0;}
         }
+        
+        // Handle timer overflow pending
     }
 }
