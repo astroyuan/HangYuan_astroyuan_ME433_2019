@@ -3,6 +3,7 @@
 #include<math.h>
 //#include"i2c_master_utilities.h"
 #include"ili9341.h"
+#include<stdio.h>
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -73,6 +74,7 @@ int main() {
     {
         SPI1_init();
         LCD_init();
+        LCD_clearScreen(ILI9341_BLACK);
     }
 
     __builtin_enable_interrupts();
@@ -96,6 +98,8 @@ int main() {
     int TimerNow = _CP0_GET_COUNT();
     int Timer_LED = TimerStart;
     int Timer_LCD = TimerStart;
+    
+    int progress = 0;
 
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
@@ -105,10 +109,33 @@ int main() {
          --------------------------------------*/
         if (LCD_flag == 1)
         {
+            int pos_x, pos_y, pos_idx;
+            int frame_timer;
+            double fps;
+            char s[10];
             if (_CP0_GET_COUNT() - Timer_LCD > T_LCD_COM)
             {
-                LCD_clearScreen(ILI9341_BLACK);
+                frame_timer = _CP0_GET_COUNT();
+                pos_x=28;
+                pos_y=32;
+                pos_idx = LCD_drawString("hang@hang-TFTLCD",pos_x,pos_y,ILI9341_GREEN,ILI9341_BLACK);
+                pos_x = pos_idx / ILI9341_TFTWIDTH;
+                pos_y = pos_idx % ILI9341_TFTWIDTH;
+                pos_idx = LCD_drawString(":~$ Hello world!",pos_x,pos_y,ILI9341_WHITE,ILI9341_BLACK);
+                sprintf(s, " %d%%", progress);
+                pos_x = pos_idx / ILI9341_TFTWIDTH;
+                pos_y = pos_idx % ILI9341_TFTWIDTH;
+                LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
+                pos_x=28;
+                pos_y=32+8;
+                LCD_drawProgressBar(pos_x, pos_y, 100, 8, progress, ILI9341_RED, ILI9341_BLACK);
+                progress=(progress+1)%101;
                 Timer_LCD = _CP0_GET_COUNT();
+                
+                // show fps
+                fps = LoopCLK_freq / (double)(Timer_LCD - frame_timer);
+                sprintf(s, "fps: %.2f", fps);
+                LCD_drawString(s,0,0,ILI9341_YELLOW, ILI9341_BLACK);
             }
         }
         /*-------------------------------------

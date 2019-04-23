@@ -207,5 +207,8 @@ void LCD_data16(unsigned short dat);
 void LCD_setAddr(unsigned short x, unsigned short y, unsigned short w, unsigned short h);
 void LCD_drawPixel(unsigned short x, unsigned short y, unsigned short color);
 void LCD_clearScreen(unsigned short color);
-
+void LCD_drawCharacter(char s, unsigned short x0, unsigned short y0, unsigned short fgcolor, unsigned short bgcolor);
+int LCD_drawString(char* s, unsigned short x0, unsigned short y0, unsigned fgcolor, unsigned short bgcolor);
+int LCD_checkBoundary(unsigned short x, unsigned short y);
+void LCD_drawProgressBar(unsigned short x0, unsigned short y0, unsigned short width, unsigned height, unsigned short progress, unsigned short fgcolor, unsigned short bgcolor);
 #endif

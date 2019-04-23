@@ -240,6 +240,7 @@ void LCD_setAddr(unsigned short x, unsigned short y, unsigned short w, unsigned 
 
 void LCD_drawPixel(unsigned short x, unsigned short y, unsigned short color) {
   // check boundary
+    if (LCD_checkBoundary(x,y) == -1) return;
     
     CS = 0; // CS
     
@@ -260,4 +261,62 @@ void LCD_clearScreen(unsigned short color) {
 	}
     
     CS = 1; // CS
+}
+
+void LCD_drawCharacter(char s, unsigned short x0, unsigned short y0, unsigned short fgcolor, unsigned short bgcolor)
+{
+    // draw a single ASCII letter
+    int offset = 0x20;
+    int idx = s - offset;
+    
+    // bitmap 8x5 bits
+    // draw pixel by pixel
+    int i,j;
+    for (i = 0; i < 5; i++)
+        for (j = 0; j < 8; j++)
+        {
+            if (ASCII[idx][i] & (1<<j))
+                LCD_drawPixel(x0+i, y0+j, fgcolor);
+            else
+                LCD_drawPixel(x0+i, y0+j, bgcolor);
+        }
+}
+
+int LCD_drawString(char* s, unsigned short x0, unsigned short y0, unsigned fgcolor, unsigned short bgcolor)
+{
+    // draw a string of ASCII letters
+    int i=0;
+    while (s[i])
+    {
+        LCD_drawCharacter(s[i], (x0+i*5)%ILI9341_TFTWIDTH, y0+((x0+i*5)/ILI9341_TFTWIDTH)*8, fgcolor, bgcolor);
+        i++;
+    }
+    int x_next = (x0+i*5)%ILI9341_TFTWIDTH;
+    int y_next = y0+((x0+i*5)/ILI9341_TFTWIDTH)*8;
+    return x_next*ILI9341_TFTWIDTH + y_next;
+}
+
+int LCD_checkBoundary(unsigned short x, unsigned short y)
+{
+    // boundary limit checking
+    if ((x > ILI9341_TFTWIDTH) | (y > ILI9341_TFTHEIGHT))
+    {
+        LCD_drawString("Error: Exceed display boundary!", 0, 0, ILI9341_RED, ILI9341_BLACK);
+        return -1;
+    }
+    else
+        return 1;
+}
+
+void LCD_drawProgressBar(unsigned short x0, unsigned short y0, unsigned short width, unsigned height, unsigned short progress, unsigned short fgcolor, unsigned short bgcolor)
+{
+    int i,j;
+    for (i=0; i<width; i++)
+        for (j=0; j<height; j++)
+        {
+            if (i <= progress)
+                LCD_drawPixel(x0+i,y0+j,fgcolor);
+            else
+                LCD_drawPixel(x0+i,y0+j,bgcolor);
+        }
 }
