@@ -211,4 +211,5 @@ void LCD_drawCharacter(char s, unsigned short x0, unsigned short y0, unsigned sh
 int LCD_drawString(char* s, unsigned short x0, unsigned short y0, unsigned fgcolor, unsigned short bgcolor);
 int LCD_checkBoundary(unsigned short x, unsigned short y);
 void LCD_drawProgressBar(unsigned short x0, unsigned short y0, unsigned short width, unsigned height, unsigned short progress, unsigned short fgcolor, unsigned short bgcolor);
+void LCD_drawCross(unsigned short x0, unsigned short y0, unsigned short fullscale, short Xcomp, short Ycomp, unsigned short fgcolor, unsigned short bgcolor);
 #endif

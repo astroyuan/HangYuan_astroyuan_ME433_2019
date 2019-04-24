@@ -180,7 +180,8 @@ int main() {
     short gyroX, gyroY, gyroZ;
     short accelX, accelY, accelZ;
     double Xcomp, Ycomp;
-    int Xinc, Yinc;
+    short Xdelta, Ydelta;
+    unsigned short fullscale=ILI9341_TFTWIDTH-4;
 
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
@@ -193,8 +194,8 @@ int main() {
             if (_CP0_GET_COUNT() - Timer_LCD > T_LCD_COM)
             {
                 frame_timer = _CP0_GET_COUNT();
-                pos_x=28;
-                pos_y=32;
+                pos_x=0;
+                pos_y=0;
                 // start from OUT_TEMP_L to OUTZ_H_XL
                 I2C2_getIMUdata(0x20, data, 14);
                 // decode data block
@@ -205,26 +206,32 @@ int main() {
                 accelX = (data[8] & 0x00ff) | (((short)data[9])<<8);
                 accelY = (data[10] & 0x00ff) | (((short)data[11])<<8);
                 accelZ = (data[12] & 0x00ff) | (((short)data[13])<<8);
-                //sprintf(s, "Temperature: %i", temperature);
-                //LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
-                //sprintf(s, "Gyroscope: %i %i %i", gyroX, gyroY, gyroZ);
-                //LCD_drawString(s,pos_x,pos_y+8,ILI9341_ORANGE,ILI9341_BLACK);
-                //sprintf(s, "Accelerometer: %i %i %i", accelX, accelY, accelZ);
-                //LCD_drawString(s,pos_x,pos_y+16,ILI9341_ORANGE,ILI9341_BLACK);
+                sprintf(s, "Temperature: %i            ", temperature);
+                LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
+                sprintf(s, "Gyroscope: %i %i %i           ", gyroX, gyroY, gyroZ);
+                LCD_drawString(s,pos_x,pos_y+8,ILI9341_ORANGE,ILI9341_BLACK);
+                sprintf(s, "Accelerometer: %i %i %i           ", accelX, accelY, accelZ);
+                LCD_drawString(s,pos_x,pos_y+16,ILI9341_ORANGE,ILI9341_BLACK);
                 // scale values in unit of 1g
                 Xcomp = ((double)accelX)/SHRT_MAX * 2; // scale by 1g
                 Ycomp = ((double)accelY)/SHRT_MAX * 2; // scale by 1g
                 // remap for display length
-                Xinc = (int)(Xcomp*(double)ILI9341_TFTWIDTH);
-                Yinc = (int)(Ycomp*(double)ILI9341_TFTHEIGHT);
-                //sprintf(s, "Test: %d %d", Xinc, Yinc);
-                //LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
+                Xdelta = (short)(Xcomp*(double)fullscale);
+                Ydelta = (short)(Ycomp*(double)fullscale);
+                //sprintf(s, "Test: %.2f %.2f", Xcomp, Ycomp);
+                //pos_idx = LCD_drawString(s,pos_x,poILI9341_TFTWIDTHs_y,ILI9341_ORANGE,ILI9341_BLACK);
+                //pos_x = pos_idx/ILI9341_TFTWIDTH;
+                //pos_y = pos_idx%ILI9341_TFTWIDTH;
+                //sprintf(s, "           ");
+                //LCD_drawString(s,pos_x,pos_y,ILI9341_BLACK,ILI9341_BLACK);
+                LCD_drawCross(120, 160, fullscale, Xdelta, Ydelta, ILI9341_RED, ILI9341_YELLOW);
+                
                 Timer_LCD = _CP0_GET_COUNT();
                 
                 // show fps
-                fps = LoopCLK_freq / (double)(Timer_LCD - frame_timer);
-                sprintf(s, "fps: %.2f", fps);
-                LCD_drawString(s,0,0,ILI9341_YELLOW, ILI9341_BLACK);
+                //fps = LoopCLK_freq / (double)(Timer_LCD - frame_timer);
+                //sprintf(s, "fps: %.2f", fps);
+                //LCD_drawString(s,0,0,ILI9341_YELLOW, ILI9341_BLACK);
             }
         }
         /*-------------------------------------

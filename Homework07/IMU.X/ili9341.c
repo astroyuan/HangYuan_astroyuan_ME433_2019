@@ -321,7 +321,122 @@ void LCD_drawProgressBar(unsigned short x0, unsigned short y0, unsigned short wi
         }
 }
 
-void LCD_drawCross(unsigned short x0, unsigned short y0, unsigned short width, unsigned short height)
+void LCD_drawCross(unsigned short x0, unsigned short y0, unsigned short fullscale, short Xcomp, short Ycomp, unsigned short fgcolor, unsigned short bgcolor)
 {
+    // visualize a 2d vector x,y components with origin defined by (x0,y0)
+    unsigned short xt,yt;
+    unsigned short xl,xh,yl,yh;
+    unsigned short incx, incy;
+    unsigned short xc,yc;
+    unsigned short thickness=2;
     
+    xl=x0-fullscale/2;
+    xh=x0+fullscale/2;
+    yl=y0-fullscale/2;
+    yh=y0+fullscale/2;
+    
+    xt=(unsigned short)((short)x0+Xcomp);
+    yt=(unsigned short)((short)y0+Ycomp);
+    
+    int tmp;
+    // x-component
+    yc=y0;
+    for(xc=xl;xc<xh;xc++)
+    {
+        if(Xcomp<0 && xc!=x0)
+        {
+            if((xt <= xc && xc <= x0))
+            {
+                LCD_drawPixel(xc,yc,fgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc,yc+tmp,fgcolor);
+                    LCD_drawPixel(xc,yc-tmp,fgcolor);
+                }
+            }
+            else
+            {
+                LCD_drawPixel(xc,yc,bgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc,yc+tmp,bgcolor);
+                    LCD_drawPixel(xc,yc-tmp,bgcolor);
+                }
+            }
+        }
+        else if(Xcomp>0 && xc!=x0)
+        {
+            if(x0 <= xc && xc <= xt)
+            {
+                LCD_drawPixel(xc,yc,fgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc,yc+tmp,fgcolor);
+                    LCD_drawPixel(xc,yc-tmp,fgcolor);
+                }
+            }
+            else
+            {
+                LCD_drawPixel(xc,yc,bgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc,yc+tmp,bgcolor);
+                    LCD_drawPixel(xc,yc-tmp,bgcolor);
+                }
+            }
+        }
+    }
+    // y-component
+    xc=x0;
+    for(yc=yl;yc<yh;yc++)
+    {
+        if(Ycomp<0 && yc!=y0)
+        {
+            if(yt <= yc && yc <= y0)
+            {
+                LCD_drawPixel(xc,yc,fgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc+tmp,yc,fgcolor);
+                    LCD_drawPixel(xc-tmp,yc,fgcolor);
+                }
+            }
+            else
+            {
+                LCD_drawPixel(xc,yc,bgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc+tmp,yc,bgcolor);
+                    LCD_drawPixel(xc-tmp,yc,bgcolor);
+                }
+            }
+        }
+        else if(Ycomp>0 && yc!=y0)
+        {
+            if(y0 <= yc && yc <= yt)
+            {
+                LCD_drawPixel(xc,yc,fgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc+tmp,yc,fgcolor);
+                    LCD_drawPixel(xc-tmp,yc,fgcolor);
+                }
+            }
+            else
+            {
+                LCD_drawPixel(xc,yc,bgcolor);
+                for(tmp=1;tmp<=thickness;tmp++)
+                {
+                    LCD_drawPixel(xc+tmp,yc,bgcolor);
+                    LCD_drawPixel(xc-tmp,yc,bgcolor);
+                }
+            }
+        }
+    }
+    // origin
+    LCD_drawPixel(x0,y0,fgcolor);
+    for(tmp=1;tmp<=thickness;tmp++)
+        LCD_drawPixel(x0+tmp,y0,fgcolor);
+    for(tmp=1;tmp<=thickness;tmp++)
+        LCD_drawPixel(x0,y0+tmp,fgcolor);
 }
