@@ -122,8 +122,8 @@ void APP_Initialize ( void )
      * parameters.
      */
     appData.LED_blink_flag = 1;
-    appData.LCD_flag = 0;
-    appData.IMU_flag = 0;
+    appData.LCD_flag = 1;
+    appData.IMU_flag = 1;
     
     appData.SysCLK_freq = 48e6;
     appData.LoopCLK_freq = appData.SysCLK_freq/2;
@@ -246,6 +246,42 @@ void APP_Tasks ( void )
         }
         while (!PORTBbits.RB4){LATAbits.LATA4 = 0;}
     }
+    
+    if (appData.LCD_flag == 1)
+        {
+            if (_CP0_GET_COUNT() - appData.Timer_LCD > appData.T_LCD_COM)
+            {
+                appData.frame_timer = _CP0_GET_COUNT();
+                appData.pos_x=0;
+                appData.pos_y=0;
+                // start from OUT_TEMP_L to OUTZ_H_XL
+                I2C2_getIMUdata(0x20, appData.data, 14);
+                // decode data block
+                appData.temperature = (appData.data[0] & 0x00ff) | (((short)appData.data[1])<<8);
+                appData.gyroX = (appData.data[2] & 0x00ff) | (((short)appData.data[3])<<8);
+                appData.gyroY = (appData.data[4] & 0x00ff) | (((short)appData.data[5])<<8);
+                appData.gyroZ = (appData.data[6] & 0x00ff) | (((short)appData.data[7])<<8);
+                appData.accelX = (appData.data[8] & 0x00ff) | (((short)appData.data[9])<<8);
+                appData.accelY = (appData.data[10] & 0x00ff) | (((short)appData.data[11])<<8);
+                appData.accelZ = (appData.data[12] & 0x00ff) | (((short)appData.data[13])<<8);
+                sprintf(appData.s, "Temperature: %i            ", appData.temperature);
+                LCD_drawString(appData.s,appData.pos_x,appData.pos_y,ILI9341_ORANGE,ILI9341_BLACK);
+                sprintf(appData.s, "Gyroscope: %i %i %i           ", appData.gyroX, appData.gyroY, appData.gyroZ);
+                LCD_drawString(appData.s,appData.pos_x,appData.pos_y+8,ILI9341_ORANGE,ILI9341_BLACK);
+                sprintf(appData.s, "Accelerometer: %i %i %i           ", appData.accelX, appData.accelY, appData.accelZ);
+                LCD_drawString(appData.s,appData.pos_x,appData.pos_y+16,ILI9341_ORANGE,ILI9341_BLACK);
+                // scale values in unit of 1g
+                appData.Xcomp = ((double)appData.accelX)/SHRT_MAX * 2; // scale by 1g
+                appData.Ycomp = ((double)appData.accelY)/SHRT_MAX * 2; // scale by 1g
+                // remap for display length
+                appData.Xdelta = (short)(appData.Xcomp*(double)appData.fullscale);
+                appData.Ydelta = (short)(appData.Ycomp*(double)appData.fullscale);
+
+                LCD_drawCross(120, 160, appData.fullscale, appData.Xdelta, appData.Ydelta, ILI9341_RED, ILI9341_YELLOW);
+                
+                appData.Timer_LCD = _CP0_GET_COUNT();
+            }
+        }
 }
 
  
