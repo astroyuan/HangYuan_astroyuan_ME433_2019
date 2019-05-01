@@ -129,7 +129,8 @@ int main() {
     // functionality control
     int LED_blink_flag = 1;
     int LCD_flag = 1;
-    int IMU_flag = 1;
+    int IMU_flag = 0;
+    int touchscreen_flag = 1;
 
     // do your TRIS and LAT commands here
     if(LED_blink_flag == 1) LED_blink_init();
@@ -146,6 +147,11 @@ int main() {
             LCD_drawString("Error: Unexpected IMU address.", 0, 0, ILI9341_RED, ILI9341_BLACK);
         I2C2_initIMU();
     }
+    if(touchscreen_flag == 1)
+    {
+        SPI2_init();
+        ScreenGUI_init();
+    }
 
     __builtin_enable_interrupts();
     
@@ -155,7 +161,7 @@ int main() {
     // LED
     int LED_blink_freq = 2; // LED blink frequency
     // LCD
-    int LCD_COM_freq = 20;
+    int LCD_COM_freq = 5;
     
     // periods
     int T_LED_BLINK = LoopCLK_freq/LED_blink_freq/2;
@@ -182,6 +188,11 @@ int main() {
     double Xcomp, Ycomp;
     short Xdelta, Ydelta;
     unsigned short fullscale=ILI9341_TFTWIDTH-4;
+    
+    unsigned short x_touch_raw, y_touch_raw, z_touch_raw;
+    unsigned short x_touch, y_touch;
+    unsigned short pressure_threshold=666;
+    int val_disp=0;
 
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
@@ -196,35 +207,88 @@ int main() {
                 frame_timer = _CP0_GET_COUNT();
                 pos_x=0;
                 pos_y=0;
-                // start from OUT_TEMP_L to OUTZ_H_XL
-                I2C2_getIMUdata(0x20, data, 14);
-                // decode data block
-                temperature = (data[0] & 0x00ff) | (((short)data[1])<<8);
-                gyroX = (data[2] & 0x00ff) | (((short)data[3])<<8);
-                gyroY = (data[4] & 0x00ff) | (((short)data[5])<<8);
-                gyroZ = (data[6] & 0x00ff) | (((short)data[7])<<8);
-                accelX = (data[8] & 0x00ff) | (((short)data[9])<<8);
-                accelY = (data[10] & 0x00ff) | (((short)data[11])<<8);
-                accelZ = (data[12] & 0x00ff) | (((short)data[13])<<8);
-                sprintf(s, "Temperature: %i            ", temperature);
-                LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
-                sprintf(s, "Gyroscope: %i %i %i           ", gyroX, gyroY, gyroZ);
-                LCD_drawString(s,pos_x,pos_y+8,ILI9341_ORANGE,ILI9341_BLACK);
-                sprintf(s, "Accelerometer: %i %i %i           ", accelX, accelY, accelZ);
-                LCD_drawString(s,pos_x,pos_y+16,ILI9341_ORANGE,ILI9341_BLACK);
-                // scale values in unit of 1g
-                Xcomp = ((double)accelX)/SHRT_MAX * 2; // scale by 1g
-                Ycomp = ((double)accelY)/SHRT_MAX * 2; // scale by 1g
-                // remap for display length
-                Xdelta = (short)(Xcomp*(double)fullscale);
-                Ydelta = (short)(Ycomp*(double)fullscale);
-                //sprintf(s, "Test: %.2f %.2f", Xcomp, Ycomp);
-                //pos_idx = LCD_drawString(s,pos_x,poILI9341_TFTWIDTHs_y,ILI9341_ORANGE,ILI9341_BLACK);
-                //pos_x = pos_idx/ILI9341_TFTWIDTH;
-                //pos_y = pos_idx%ILI9341_TFTWIDTH;
-                //sprintf(s, "           ");
-                //LCD_drawString(s,pos_x,pos_y,ILI9341_BLACK,ILI9341_BLACK);
-                LCD_drawCross(120, 160, fullscale, Xdelta, Ydelta, ILI9341_RED, ILI9341_YELLOW);
+                if (IMU_flag == 1)
+                {
+                    // start from OUT_TEMP_L to OUTZ_H_XL
+                    I2C2_getIMUdata(0x20, data, 14);
+                    // decode data block
+                    temperature = (data[0] & 0x00ff) | (((short)data[1])<<8);
+                    gyroX = (data[2] & 0x00ff) | (((short)data[3])<<8);
+                    gyroY = (data[4] & 0x00ff) | (((short)data[5])<<8);
+                    gyroZ = (data[6] & 0x00ff) | (((short)data[7])<<8);
+                    accelX = (data[8] & 0x00ff) | (((short)data[9])<<8);
+                    accelY = (data[10] & 0x00ff) | (((short)data[11])<<8);
+                    accelZ = (data[12] & 0x00ff) | (((short)data[13])<<8);
+                    sprintf(s, "Temperature: %i            ", temperature);
+                    LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
+                    sprintf(s, "Gyroscope: %i %i %i           ", gyroX, gyroY, gyroZ);
+                    LCD_drawString(s,pos_x,pos_y+8,ILI9341_ORANGE,ILI9341_BLACK);
+                    sprintf(s, "Accelerometer: %i %i %i           ", accelX, accelY, accelZ);
+                    LCD_drawString(s,pos_x,pos_y+16,ILI9341_ORANGE,ILI9341_BLACK);
+                    // scale values in unit of 1g
+                    Xcomp = ((double)accelX)/SHRT_MAX * 2; // scale by 1g
+                    Ycomp = ((double)accelY)/SHRT_MAX * 2; // scale by 1g
+                    // remap for display length
+                    Xdelta = (short)(Xcomp*(double)fullscale);
+                    Ydelta = (short)(Ycomp*(double)fullscale);
+                    //sprintf(s, "Test: %.2f %.2f", Xcomp, Ycomp);
+                    //pos_idx = LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
+                    //pos_x = pos_idx/ILI9341_TFTWIDTH;
+                    //pos_y = pos_idx%ILI9341_TFTWIDTH;
+                    //sprintf(s, "           ");
+                    //LCD_drawString(s,pos_x,pos_y,ILI9341_BLACK,ILI9341_BLACK);
+                    LCD_drawCross(120, 160, fullscale, Xdelta, Ydelta, ILI9341_RED, ILI9341_YELLOW);
+                }
+                
+                if (touchscreen_flag == 1)
+                {
+                    XPT2046_read(&x_touch_raw, &y_touch_raw, &z_touch_raw);
+                    sprintf(s, "Xraw: %u     ", x_touch_raw);
+                    LCD_drawString(s,pos_x,pos_y+24,ILI9341_ORANGE,ILI9341_BLACK);
+                    sprintf(s, "Yraw: %u     ", y_touch_raw);
+                    LCD_drawString(s,pos_x,pos_y+32,ILI9341_ORANGE,ILI9341_BLACK);
+                    sprintf(s, "Zraw: %u     ", z_touch_raw);
+                    LCD_drawString(s,pos_x,pos_y+40,ILI9341_ORANGE,ILI9341_BLACK);
+                    XPT2046_raw2pixel(x_touch_raw, y_touch_raw, &x_touch, &y_touch);
+                    sprintf(s, "X: %u     ", x_touch);
+                    LCD_drawString(s,pos_x,pos_y+48,ILI9341_ORANGE,ILI9341_BLACK);
+                    sprintf(s, "Y: %u     ", y_touch);
+                    LCD_drawString(s,pos_x,pos_y+56,ILI9341_ORANGE,ILI9341_BLACK);
+                    
+                    sprintf(s, "Value is: %d     ", val_disp);
+                    LCD_drawString(s,pos_x+120,pos_y+165,ILI9341_ORANGE,ILI9341_BLACK);
+                    
+                    // check callback of each buttons
+                    if (IsInsideButton(button_plus, x_touch, y_touch) && (z_touch_raw > pressure_threshold))
+                    {
+                        //pressed
+                        button_plus.state = PRESSED;
+                        LCD_drawString(button_plus.s, button_plus.xc + button_plus.width/2, button_plus.yc + button_plus.height/2, ILI9341_RED, button_plus.bgcolor);
+                    }
+                    else
+                    {
+                        //released
+                        if (button_plus.state == PRESSED)
+                            val_disp+=1;
+                        button_plus.state = RELEASED;
+                        LCD_drawString(button_plus.s, button_plus.xc + button_plus.width/2, button_plus.yc + button_plus.height/2, button_plus.fgcolor, button_plus.bgcolor);
+                    }
+                    
+                    if (IsInsideButton(button_minus, x_touch, y_touch) && (z_touch_raw > pressure_threshold))
+                    {
+                        //pressed
+                        button_minus.state = PRESSED;
+                        LCD_drawString(button_minus.s, button_minus.xc + button_minus.width/2, button_minus.yc + button_minus.height/2, ILI9341_RED, button_minus.bgcolor);
+                    }
+                    else
+                    {
+                        //released
+                        if (button_minus.state == PRESSED)
+                            val_disp-=1;
+                        button_minus.state = RELEASED;
+                        LCD_drawString(button_minus.s, button_minus.xc + button_minus.width/2, button_minus.yc + button_minus.height/2, button_minus.fgcolor, button_minus.bgcolor);
+                    }
+                }
                 
                 Timer_LCD = _CP0_GET_COUNT();
                 

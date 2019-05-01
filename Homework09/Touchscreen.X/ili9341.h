@@ -193,14 +193,37 @@ static const char ASCII[96][5] = {
 #define MADCTL_BGR 0x08  ///< Blue-Green-Red pixel order
 #define MADCTL_MH  0x04  ///< LCD refresh right to left
 
-// spi pins
-#define CS LATBbits.LATB7
-#define DC LATBbits.LATB15
+// spi1 pins
+#define CS1 LATBbits.LATB7
+#define DC1 LATBbits.LATB9
+
+// spi2 pins
+#define CS2 LATBbits.LATB10
+
+typedef enum
+{
+    RELEASED=0,
+    PRESSED,
+} BUTTON_STATES;
+
+// structs
+typedef struct
+{
+    unsigned short xc, yc; // corner coordinates
+    unsigned short width, height;
+    unsigned short bgcolor, fgcolor;
+    char s[10]; // display text
+    BUTTON_STATES state;
+} BUTTON;
+
+BUTTON button_plus, button_minus;
 
 // functions
 void LCD_init();
 void SPI1_init();
-unsigned char spi_io(unsigned char o);
+void SPI2_init();
+unsigned char spi1_io(unsigned char o);
+unsigned char spi2_io(unsigned char o);
 void LCD_command(unsigned char com) ;
 void LCD_data(unsigned char dat);
 void LCD_data16(unsigned short dat);
@@ -212,4 +235,10 @@ int LCD_drawString(char* s, unsigned short x0, unsigned short y0, unsigned fgcol
 int LCD_checkBoundary(unsigned short x, unsigned short y);
 void LCD_drawProgressBar(unsigned short x0, unsigned short y0, unsigned short width, unsigned height, unsigned short progress, unsigned short fgcolor, unsigned short bgcolor);
 void LCD_drawCross(unsigned short x0, unsigned short y0, unsigned short fullscale, short Xcomp, short Ycomp, unsigned short fgcolor, unsigned short bgcolor);
+
+void ScreenGUI_init();
+void LCD_drawButton(BUTTON newbutton);
+void XPT2046_read(unsigned short *x, unsigned short *y, unsigned short *z);
+void XPT2046_raw2pixel(unsigned short xraw, unsigned short yraw, unsigned short *xpixel, unsigned short *ypixel);
+int IsInsideButton(BUTTON button, unsigned short xp, unsigned short yp);
 #endif
