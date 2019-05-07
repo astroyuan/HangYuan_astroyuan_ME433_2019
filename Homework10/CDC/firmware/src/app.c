@@ -60,6 +60,7 @@ uint8_t APP_MAKE_BUFFER_DMA_READY dataOut[APP_READ_BUFFER_SIZE];
 uint8_t APP_MAKE_BUFFER_DMA_READY readBuffer[APP_READ_BUFFER_SIZE];
 int len, i = 0;
 int startTime = 0; // to remember the loop time
+int output_flag = 0;
 
     unsigned short SLAVE_ADDRESS = 0b1101011;
 
@@ -404,7 +405,7 @@ void APP_Initialize(void) {
 
     /* PUT YOUR LCD, IMU, AND PIN INITIALIZATIONS HERE */
     LED_blink_flag = 0;
-    LCD_flag = 1;
+    LCD_flag = 0;
     IMU_flag = 1;
     
     if(LED_blink_flag == 1) LED_blink_init();
@@ -561,21 +562,50 @@ void APP_Tasks(void) {
             
             //len = sprintf(dataOut, "%d\r\n", i);
             //i++; // increment the index so we see a change in the text
-            len = sprintf(dataOut, "%d %i %i %i %i %i %i\r\n", i, accelX, accelY, accelZ, gyroX, gyroY, gyroZ);
+            len = sprintf(dataOut, "%d %i %i %i %i %i %i\r\n", i+1, accelX, accelY, accelZ, gyroX, gyroY, gyroZ);
             i++;
             /* IF A LETTER WAS RECEIVED, ECHO IT BACK SO THE USER CAN SEE IT */
             if (appData.isReadComplete) {
-                USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
-                        &appData.writeTransferHandle,
-                        appData.readBuffer, 1,
-                        USB_DEVICE_CDC_TRANSFER_FLAGS_DATA_COMPLETE);
+                if (appData.readBuffer[0] == 'r')
+                {
+                    output_flag = 1;
+                    i = 0;
+                    dataOut[0] = 0;
+                    USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
+                            &appData.writeTransferHandle,
+                            dataOut, 1,
+                            USB_DEVICE_CDC_TRANSFER_FLAGS_DATA_COMPLETE);
+                }
+                else
+                {
+                    dataOut[0] = 0;
+                    USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
+                            &appData.writeTransferHandle,
+                            dataOut, 1,
+                            USB_DEVICE_CDC_TRANSFER_FLAGS_DATA_COMPLETE);
+                }
             }
             /* ELSE SEND THE MESSAGE YOU WANTED TO SEND */
             else {
-                USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
-                        &appData.writeTransferHandle, dataOut, len,
-                        USB_DEVICE_CDC_TRANSFER_FLAGS_DATA_COMPLETE);
+                if (output_flag == 1)
+                {
+                    USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
+                            &appData.writeTransferHandle, dataOut, len,
+                            USB_DEVICE_CDC_TRANSFER_FLAGS_DATA_COMPLETE);
+                }
+                else
+                {
+                    dataOut[0] = 0;
+                    USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
+                            &appData.writeTransferHandle, dataOut, 1,
+                            USB_DEVICE_CDC_TRANSFER_FLAGS_DATA_COMPLETE);
+                }
                 startTime = _CP0_GET_COUNT(); // reset the timer for accurate delays
+            }
+            if (i>=100)
+            {
+                output_flag = 0;
+                i = 0;
             }
             break;
 
