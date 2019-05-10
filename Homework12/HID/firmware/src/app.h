@@ -50,9 +50,13 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
 #include "system_config.h"
 #include "system_definitions.h"
 #include "mouse.h"
+#include "i2c_master_utilities.h"
+#include "ili9341.h"
 
 // *****************************************************************************
 // *****************************************************************************

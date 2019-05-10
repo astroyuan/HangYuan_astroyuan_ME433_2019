@@ -74,7 +74,21 @@ APP_DATA appData;
 /* Mouse Report */
 MOUSE_REPORT mouseReport APP_MAKE_BUFFER_DMA_READY;
 MOUSE_REPORT mouseReportPrevious APP_MAKE_BUFFER_DMA_READY;
+static uint8_t inc = 0;
+static uint8_t delay = 10;
 
+unsigned short SLAVE_ADDRESS = 0b1101011;
+// functionality control flags
+int LED_blink_flag;
+int LCD_flag;
+int IMU_flag;
+
+int pos_x, pos_y, pos_idx;
+char s[36];
+unsigned char data[14];
+short temperature;
+short gyroX, gyroY, gyroZ;
+short accelX, accelY, accelZ;
 
 // *****************************************************************************
 // *****************************************************************************
@@ -246,6 +260,91 @@ void APP_USBDeviceEventHandler(USB_DEVICE_EVENT event, void * eventData, uintptr
   Remarks:
     See prototype in app.h.
  */
+void LED_blink_init()
+{
+    // setup initial pins configuration for LED
+    TRISAbits.TRISA4 = 0; //A4 output
+    TRISBbits.TRISB4 = 1; //B4 input
+    LATAbits.LATA4 = 1; //A4
+}
+
+void I2C2_setIMU(unsigned char reg_address, unsigned char config_byte)
+{
+    // set bits of IMU
+    I2C_master_start();                       // start bit
+    I2C_master_send(SLAVE_ADDRESS << 1 | 0);  // send control byte 0 for writing
+    I2C_master_send(reg_address);             // send register address
+    I2C_master_send(config_byte);             // send configuration bits
+    I2C_master_stop();                        // stop bit
+}
+
+void I2C2_getIMUdata(unsigned char reg_address, unsigned char *data, int length)
+{
+    // get sequential data from IMU
+    int i;
+    I2C_master_start();                             //start bit
+    I2C_master_send(SLAVE_ADDRESS << 1 | 0);        // send control byte 0 for writing
+    I2C_master_send(reg_address);                   // register address
+    I2C_master_restart();
+    I2C_master_send(SLAVE_ADDRESS << 1 | 1);        // send control byte 1 for reading
+    
+    for (i=0;i<length-1;i++)
+    {
+        data[i] = I2C_master_recv();
+        I2C_master_ack(0);
+    }
+    data[i] = I2C_master_recv();
+    I2C_master_ack(1);
+    I2C_master_stop();
+}
+
+void I2C2_initIMU()
+{
+    // initialize I2C2 slave device
+    
+    // CTRL1_XL register sample rate 1.66kHz 2g sensitivity 100Hz filter
+    //0b 1000 00 10
+    I2C2_setIMU(0x10, 0b10000010);
+    // CTRL2_G register sample rate 1.66kHz 1000 dps sensitivity
+    //0b 1000 10 0 0
+    I2C2_setIMU(0x11, 0b10001000);
+    // CTRL3_C enable IF_INC
+    //0b 0 0 0 0 0 1 0 0
+    I2C2_setIMU(0x12, 0b00000100);
+}
+
+unsigned char I2C2_getIMU_Address()
+{
+    // get WHO_AM_I bits
+    I2C_master_start();                          // start bit
+    I2C_master_send(SLAVE_ADDRESS << 1 | 0);     // send control byte 0 for writing
+    I2C_master_send(0x0F);                       // GPIO register 0x09
+    I2C_master_restart();
+    I2C_master_send(SLAVE_ADDRESS << 1 | 1);     // send control byte 1 for reading
+    unsigned char recv_byte = I2C_master_recv(); // get GPIO byte
+    I2C_master_ack(1);                           // ack done
+    I2C_master_stop();                           // stop bit
+    return recv_byte;
+}
+
+int8_t accel2cursor(short accelraw)
+{
+    // convert raw accel data into relative movement of cursor
+    if (abs(accelraw) <= 2500)
+        return 0;
+    if ( (accelraw > 2500) && (accelraw <= 6000) )
+        return 1;
+    if ( (accelraw <-2500) && (accelraw >=-6000) )
+        return -1;
+    if ( (accelraw > 6000) && (accelraw <= 10000) )
+        return 2;
+    if ( (accelraw <-6000) && (accelraw >=-10000) )
+        return -2;
+    if ( (accelraw > 10000) && (accelraw <= SHRT_MAX))
+        return 4;
+    if ( (accelraw <-10000) && (accelraw >= SHRT_MIN))
+        return -4;
+}
 
 void APP_Initialize(void) {
     /* Place the App state machine in its initial state. */
@@ -255,6 +354,25 @@ void APP_Initialize(void) {
     //appData.emulateMouse = true;
     appData.hidInstance = 0;
     appData.isMouseReportSendBusy = false;
+    
+    LED_blink_flag = 0;
+    LCD_flag = 0;
+    IMU_flag = 1;
+    
+    if(LED_blink_flag == 1) LED_blink_init();
+    if(LCD_flag == 1)
+    {
+        SPI1_init();
+        LCD_init();
+        LCD_clearScreen(ILI9341_BLACK);
+    }
+    if(IMU_flag == 1)
+    {
+        I2C_master_setup();
+        if (I2C2_getIMU_Address() != 105)
+            LCD_drawString("Error: Unexpected IMU address.", 0, 0, ILI9341_RED, ILI9341_BLACK);
+        I2C2_initIMU();
+    }
 }
 
 /******************************************************************************
@@ -265,10 +383,7 @@ void APP_Initialize(void) {
  */
 
 void APP_Tasks(void) {
-    static int8_t vector = 0;
-    static uint8_t movement_length = 0;
-    int8_t dir_table[] = {-4, -4, -4, 0, 4, 4, 4, 0};
-
+    
     /* Check the application's current state. */
     switch (appData.state) {
             /* Application's initial state. */
@@ -304,15 +419,46 @@ void APP_Tasks(void) {
 
         case APP_STATE_MOUSE_EMULATE:
             
-            // every 50th loop, or 20 times per second
-            if (movement_length > 50) {
+            if (IMU_flag == 1)
+            {
+                I2C2_getIMUdata(0x20, data, 14);
+                temperature = (data[0] & 0x00ff) | (((short)data[1])<<8);
+                gyroX = (data[2] & 0x00ff) | (((short)data[3])<<8);
+                gyroY = (data[4] & 0x00ff) | (((short)data[5])<<8);
+                gyroZ = (data[6] & 0x00ff) | (((short)data[7])<<8);
+                accelX = (data[8] & 0x00ff) | (((short)data[9])<<8);
+                accelY = (data[10] & 0x00ff) | (((short)data[11])<<8);
+                accelZ = (data[12] & 0x00ff) | (((short)data[13])<<8);
+            }
+            
+            if (LCD_flag == 1)
+            {
+                pos_x=0;pos_y=0;
+                sprintf(s, "Temp: %d            ", temperature);
+                LCD_drawString(s,pos_x,pos_y,ILI9341_ORANGE,ILI9341_BLACK);
+                sprintf(s, "Gyro: %d %d %d           ", gyroX, gyroY, gyroZ);
+                LCD_drawString(s,pos_x,pos_y+8,ILI9341_ORANGE,ILI9341_BLACK);
+                sprintf(s, "Acce: %d %d %d           ", accelX, accelY, accelZ);
+                LCD_drawString(s,pos_x,pos_y+16,ILI9341_ORANGE,ILI9341_BLACK);
+            }
+            
+            if (inc >= delay)
+            {
+                // every delayth loop, or 20 times per second
                 appData.mouseButton[0] = MOUSE_BUTTON_STATE_RELEASED;
                 appData.mouseButton[1] = MOUSE_BUTTON_STATE_RELEASED;
-                appData.xCoordinate = (int8_t) dir_table[vector & 0x07];
-                appData.yCoordinate = (int8_t) dir_table[(vector + 2) & 0x07];
-                vector++;
-                movement_length = 0;
+                appData.xCoordinate = accel2cursor(accelX);
+                appData.yCoordinate = accel2cursor(accelY);
+                inc = 0;
             }
+            else
+            {
+                appData.mouseButton[0] = MOUSE_BUTTON_STATE_RELEASED;
+                appData.mouseButton[1] = MOUSE_BUTTON_STATE_RELEASED;
+                appData.xCoordinate = (int8_t) 0;
+                appData.yCoordinate = (int8_t) 0;
+            }
+            inc++;
 
             if (!appData.isMouseReportSendBusy) {
                 /* This means we can send the mouse report. The
@@ -364,7 +510,6 @@ void APP_Tasks(void) {
                             sizeof (MOUSE_REPORT));
                     appData.setIdleTimer = 0;
                 }
-                movement_length++;
             }
 
             break;
