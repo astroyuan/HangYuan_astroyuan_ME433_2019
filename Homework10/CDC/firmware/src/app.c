@@ -62,12 +62,12 @@ int len, i = 0;
 int startTime = 0; // to remember the loop time
 int output_flag = 0;
 
-    unsigned short SLAVE_ADDRESS = 0b1101011;
+unsigned short SLAVE_ADDRESS = 0b1101011;
 
-    // functionality control flags
-    int LED_blink_flag = 1;
-    int LCD_flag = 1;
-    int IMU_flag = 1;
+// functionality control flags
+int LED_blink_flag = 1;
+int LCD_flag = 1;
+int IMU_flag = 1;
 
 // *****************************************************************************
 /* Application Data
@@ -334,7 +334,7 @@ void I2C2_getIMUdata(unsigned char reg_address, unsigned char *data, int length)
         data[i] = I2C_master_recv();
         I2C_master_ack(0);
     }
-    data[i+1] = I2C_master_recv();
+    data[i] = I2C_master_recv();
     I2C_master_ack(1);
     I2C_master_stop();
 }
@@ -405,7 +405,7 @@ void APP_Initialize(void) {
 
     /* PUT YOUR LCD, IMU, AND PIN INITIALIZATIONS HERE */
     LED_blink_flag = 0;
-    LCD_flag = 0;
+    LCD_flag = 1;
     IMU_flag = 1;
     
     if(LED_blink_flag == 1) LED_blink_init();
