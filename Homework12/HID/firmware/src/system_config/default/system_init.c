@@ -347,7 +347,7 @@ USB_DEVICE_CONFIGURATION_DESCRIPTORS_TABLE fullSpeedConfigDescSet[1] =
     {
         sizeof(sd001),
         USB_DESCRIPTOR_STRING,
-        {'M','a','d','e',' ','I','n',' ','H','a','n','g',''','s',' ','O','f','f','i','c','e'}
+        {'M','a','d','e',' ','I','n',' ','H','a','n','g','\'','s',' ','O','f','f','i','c','e'}
 		
     };
 
@@ -364,7 +364,7 @@ USB_DEVICE_CONFIGURATION_DESCRIPTORS_TABLE fullSpeedConfigDescSet[1] =
     {
         sizeof(sd002),
         USB_DESCRIPTOR_STRING,
-		{'H','a','n','g',''','s',' ','H','a','n','d','c','r','a','f','t','e','d',' ','M','o','u','s','e'}
+		{'H','a','n','g','\'','s',' ','H','a','n','d','c','r','a','f','t','e','d',' ','M','o','u','s','e'}
     }; 
 
 /***************************************
