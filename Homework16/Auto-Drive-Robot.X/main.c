@@ -206,6 +206,7 @@ int main() {
             LCD_drawPixel(com,y+30,ILI9341_RED);
         }
         int speed = 0;
+        int top_speed = 100;
         int e = 0;
         // try to keep com at c/2/2 using the motors
         DIR1 = 1; // depending on your motor directions these might be different
@@ -215,27 +216,27 @@ int main() {
         // things to play with: the slope of the line, the value that determines when the motor is not full speed
         if (com < c/2/2){
             e = c/2/2 - com;
-            speed = 2399 - (2399/c/2/2)*e; // when the com is all the way over, the motor is all off
-            if(speed > 2399){
-                speed = 2399;
+            speed = top_speed - (top_speed/c/2/2)*e; // when the com is all the way over, the motor is all off
+            if(speed > top_speed){
+                speed = top_speed;
             }
             if(speed < 0){
                 speed = 0;
             }
-            OC1RS = 2399;
+            OC1RS = top_speed;
             OC4RS = speed;
         }
         else {
             e = com - c/2/2;
-            speed = 2399 - (2399/c/2/2)*e; // when the com is all the way over, the motor is all off
-            if(speed > 2399){
-                speed = 2399;
+            speed = top_speed - (top_speed/c/2/2)*e; // when the com is all the way over, the motor is all off
+            if(speed > top_speed){
+                speed = top_speed;
             }
             if(speed < 0){
                 speed = 0;
             }
             OC1RS = speed;
-            OC4RS = 2399;
+            OC4RS = top_speed;
         }
 
     }

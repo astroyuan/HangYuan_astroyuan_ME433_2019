@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?> 
 <project>                                  
-  <executable name="dist/default/production/Auto-Drive-Robot.X.production.elf">                 
+  <executable name="dist/default/production/PWM.X.production.elf">                 
     <memory name="program">                 
       <units>bytes</units>                 
-      <length>263312</length>                 
-      <used>21176</used>                     
-      <free>242136</free>                     
+      <length>132240</length>                 
+      <used>26480</used>                     
+      <free>105760</free>                     
     </memory>                              
     <memory name="data">              
       <units>bytes</units>                 
-      <length>65536</length>                 
-      <used>50472</used>                     
-      <free>15064</free>                     
+      <length>32768</length>                 
+      <used>424</used>                     
+      <free>32344</free>                     
     </memory>                              
   </executable>                            
 </project>                                 
